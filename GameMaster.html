@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Game Master - Kids Quiz</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#050520 0%,#0d0d3d 50%,#050520 100%);min-height:100vh;color:#fff;overflow-x:hidden;}
+.screen{display:none;min-height:100vh;}
+.screen.active{display:flex;}
+#welcome{flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center;}
+.trophy{font-size:5rem;animation:bounce 1.2s ease-in-out infinite;}
+@keyframes bounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-12px);}}
+.game-title{font-size:clamp(2.2rem,6vw,4rem);font-weight:900;background:linear-gradient(135deg,#ffd700,#ff8c00,#ffd700);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:3px;animation:glow 2s ease-in-out infinite;}
+@keyframes glow{0%,100%{filter:drop-shadow(0 0 8px #ffd700);}50%{filter:drop-shadow(0 0 22px #ffd700) drop-shadow(0 0 40px #ff8c00);}}
+.subtitle{color:#c0c0e0;letter-spacing:2px;font-size:clamp(.85rem,2vw,1.1rem);margin-bottom:35px;}
+.welcome-card{background:rgba(255,255,255,.05);border:1px solid rgba(255,215,0,.3);border-radius:22px;padding:38px;max-width:480px;width:100%;backdrop-filter:blur(10px);}
+.field-label{color:#ffd700;font-size:.9rem;font-weight:700;letter-spacing:1px;margin-bottom:10px;display:block;}
+.name-input{width:100%;padding:14px 20px;border-radius:50px;border:2px solid #ffd700;background:rgba(255,215,0,.08);color:#fff;font-size:1.05rem;text-align:center;outline:none;margin-bottom:24px;transition:all .3s;}
+.name-input::placeholder{color:rgba(255,255,255,.35);}
+.name-input:focus{border-color:#ff8c00;box-shadow:0 0 18px rgba(255,215,0,.3);}
+.age-row{display:flex;gap:14px;margin-bottom:28px;}
+.age-btn{flex:1;padding:18px 10px;border-radius:14px;border:2px solid rgba(255,215,0,.35);background:rgba(255,215,0,.05);color:#fff;cursor:pointer;transition:all .3s;font-size:.9rem;font-weight:700;}
+.age-btn .emoji{font-size:2rem;display:block;margin-bottom:6px;}
+.age-btn:hover,.age-btn.sel{background:linear-gradient(135deg,#ffd700,#ff8c00);color:#0d0d3d;border-color:#ffd700;transform:translateY(-3px);box-shadow:0 10px 28px rgba(255,215,0,.4);}
+.start-btn{width:100%;padding:16px;border-radius:50px;border:none;background:linear-gradient(135deg,#ffd700,#ff8c00);color:#0d0d3d;font-size:1.15rem;font-weight:900;cursor:pointer;letter-spacing:2px;text-transform:uppercase;transition:all .3s;}
+.start-btn:hover:not(:disabled){transform:translateY(-3px);box-shadow:0 14px 36px rgba(255,215,0,.5);}
+.start-btn:disabled{opacity:.4;cursor:not-allowed;}
+#game{flex-direction:row;}
+.game-main{flex:1;display:flex;flex-direction:column;padding:18px;max-width:820px;margin:0 auto;width:100%;}
+.top-bar{display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,.05);border:1px solid rgba(255,215,0,.2);border-radius:14px;padding:12px 18px;margin-bottom:16px;}
+.player-tag{color:#ffd700;font-weight:700;font-size:.95rem;}
+.safe-tag{color:#00ff88;font-weight:700;font-size:.9rem;}
+.lifelines{display:flex;gap:12px;justify-content:center;margin-bottom:18px;flex-wrap:wrap;}
+.ll-btn{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 18px;border-radius:50px;border:2px solid rgba(255,215,0,.55);background:rgba(255,215,0,.08);color:#ffd700;cursor:pointer;transition:all .3s;font-size:.78rem;font-weight:800;min-width:85px;}
+.ll-btn .ll-icon{font-size:1.4rem;}
+.ll-btn:hover:not(:disabled){background:rgba(255,215,0,.18);transform:translateY(-2px);box-shadow:0 5px 14px rgba(255,215,0,.3);}
+.ll-btn:disabled{opacity:.25;cursor:not-allowed;text-decoration:line-through;}
+.question-box{background:rgba(255,255,255,.05);border:2px solid rgba(255,215,0,.3);border-radius:20px;padding:28px;margin-bottom:20px;flex:1;display:flex;flex-direction:column;justify-content:center;text-align:center;}
+.q-cat{font-size:.72rem;color:#a0a0d0;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;}
+.q-num{font-size:.8rem;color:#ffd700;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px;}
+.q-text{font-size:clamp(1rem,2.4vw,1.35rem);font-weight:600;line-height:1.65;}
+.options-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-bottom:16px;}
+.opt-btn{display:flex;align-items:center;gap:13px;padding:16px 18px;border-radius:50px;border:2px solid rgba(80,80,180,.55);background:linear-gradient(135deg,rgba(18,18,70,.85),rgba(35,35,110,.85));color:#fff;cursor:pointer;transition:all .25s;font-size:.88rem;font-weight:600;text-align:left;}
+.opt-lbl{width:34px;height:34px;border-radius:50%;background:rgba(255,215,0,.15);border:1px solid #ffd700;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.85rem;color:#ffd700;flex-shrink:0;}
+.opt-btn:hover:not(:disabled):not(.elim):not(.locked-state){border-color:#ffd700;background:linear-gradient(135deg,rgba(255,215,0,.18),rgba(255,140,0,.18));transform:translateY(-2px);box-shadow:0 5px 18px rgba(255,215,0,.28);}
+.opt-btn.selected{border-color:#ffd700;background:linear-gradient(135deg,rgba(255,215,0,.28),rgba(255,140,0,.28));box-shadow:0 0 18px rgba(255,215,0,.4);}
+.opt-btn.locked-state{border-color:#ffa500;background:linear-gradient(135deg,rgba(255,165,0,.2),rgba(255,100,0,.2));animation:pulse .8s ease-in-out infinite;}
+@keyframes pulse{0%,100%{box-shadow:0 0 10px rgba(255,165,0,.4);}50%{box-shadow:0 0 25px rgba(255,165,0,.8);}}
+.opt-btn.correct{border-color:#00ff88;background:linear-gradient(135deg,rgba(0,255,136,.28),rgba(0,200,100,.28));box-shadow:0 0 22px rgba(0,255,136,.55);}
+.opt-btn.wrong{border-color:#ff4444;background:linear-gradient(135deg,rgba(255,68,68,.28),rgba(200,0,0,.28));box-shadow:0 0 22px rgba(255,68,68,.5);}
+.opt-btn.elim{opacity:.15;pointer-events:none;}
+.action-row{display:flex;gap:12px;justify-content:center;margin-bottom:10px;}
+.lock-btn{padding:14px 40px;border-radius:50px;border:none;background:linear-gradient(135deg,#ffd700,#ff8c00);color:#0d0d3d;font-size:1rem;font-weight:900;cursor:pointer;letter-spacing:1px;transition:all .3s;display:none;}
+.lock-btn:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(255,215,0,.5);}
+.next-btn{padding:14px 40px;border-radius:50px;border:2px solid #00ff88;background:rgba(0,255,136,.12);color:#00ff88;font-size:1rem;font-weight:800;cursor:pointer;transition:all .3s;display:none;}
+.next-btn:hover{background:rgba(0,255,136,.25);transform:translateY(-2px);}
+.quit-btn{padding:10px 20px;border-radius:50px;border:2px solid rgba(255,68,68,.45);background:transparent;color:rgba(255,68,68,.8);font-size:.8rem;font-weight:700;cursor:pointer;transition:all .3s;}
+.quit-btn:hover{background:rgba(255,68,68,.1);}
+.prize-side{width:190px;padding:16px 12px;background:rgba(0,0,0,.35);border-left:1px solid rgba(255,215,0,.1);display:flex;flex-direction:column;gap:2px;overflow-y:auto;}
+.pz{display:flex;align-items:center;gap:6px;padding:5px 9px;border-radius:8px;font-size:.75rem;color:rgba(255,255,255,.42);transition:all .3s;}
+.pz.safe{color:rgba(255,215,0,.62);}
+.pz.won{color:rgba(0,255,136,.7);}
+.pz.active{background:rgba(255,215,0,.18);color:#ffd700;font-weight:900;font-size:.8rem;box-shadow:0 0 10px rgba(255,215,0,.3);}
+.pz-n{width:16px;text-align:right;font-size:.65rem;opacity:.6;}
+.pz-amt{flex:1;font-weight:600;}
+.backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:90;}
+.backdrop.show{display:block;}
+.fact-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:92;}
+.fact-backdrop.show{display:block;}
+.modal{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:linear-gradient(135deg,#0a0a2e,#1a1a4e);border:2px solid #ffd700;border-radius:20px;padding:28px;z-index:95;min-width:320px;max-width:92vw;box-shadow:0 20px 60px rgba(0,0,0,.8);}
+.modal.show{display:block;}
+.fact-modal{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:linear-gradient(135deg,#0c0c30,#1c1c50);border:2px solid #ffd700;border-radius:22px;padding:30px;z-index:97;width:min(560px,94vw);max-height:88vh;overflow-y:auto;box-shadow:0 24px 70px rgba(0,0,0,.9);}
+.fact-modal.show{display:block;}
+.fact-cat-tag{text-align:center;font-size:.7rem;color:#a0a0d0;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;}
+.fact-header{text-align:center;font-size:1.25rem;font-weight:900;color:#ffd700;margin-bottom:14px;}
+.fact-correct-box{background:rgba(0,255,136,.1);border:1.5px solid #00ff88;border-radius:12px;padding:11px 16px;margin-bottom:16px;text-align:center;color:#00ff88;font-weight:800;font-size:.95rem;}
+.fact-body{font-size:.92rem;line-height:1.8;color:rgba(255,255,255,.88);}
+.fact-close{width:100%;margin-top:22px;padding:13px;border-radius:50px;border:none;background:linear-gradient(135deg,#ffd700,#ff8c00);color:#0d0d3d;font-size:1rem;font-weight:900;cursor:pointer;transition:all .3s;letter-spacing:1px;}
+.fact-close:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(255,215,0,.4);}
+.modal-title{text-align:center;color:#ffd700;font-size:1.1rem;font-weight:800;margin-bottom:18px;}
+.poll-row{margin-bottom:11px;}
+.poll-lbl{display:flex;justify-content:space-between;font-size:.85rem;margin-bottom:4px;}
+.poll-track{height:22px;background:rgba(255,255,255,.08);border-radius:50px;overflow:hidden;}
+.poll-fill{height:100%;border-radius:50px;background:linear-gradient(135deg,#ffd700,#ff8c00);transition:width 1s ease;width:0;}
+.modal-close{width:100%;margin-top:18px;padding:10px;border-radius:50px;border:2px solid #ffd700;background:transparent;color:#ffd700;font-size:.95rem;font-weight:700;cursor:pointer;transition:all .3s;}
+.modal-close:hover{background:rgba(255,215,0,.18);}
+#result{flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center;}
+.result-card{background:rgba(255,255,255,.05);border:2px solid rgba(255,215,0,.38);border-radius:24px;padding:48px 38px;max-width:480px;width:100%;backdrop-filter:blur(10px);}
+.r-emoji{font-size:5rem;display:block;margin-bottom:18px;}
+.r-title{font-size:2rem;font-weight:900;margin-bottom:12px;}
+.r-title.win{background:linear-gradient(135deg,#ffd700,#ff8c00);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.r-title.lose{color:#ff4444;}
+.r-amount{font-size:2.4rem;font-weight:900;color:#00ff88;margin-bottom:10px;}
+.r-msg{color:rgba(255,255,255,.65);font-size:.95rem;line-height:1.6;margin-bottom:28px;}
+.play-again{padding:16px 38px;border-radius:50px;border:none;background:linear-gradient(135deg,#ffd700,#ff8c00);color:#0d0d3d;font-size:1.05rem;font-weight:900;cursor:pointer;transition:all .3s;letter-spacing:1px;}
+.play-again:hover{transform:translateY(-3px);box-shadow:0 14px 36px rgba(255,215,0,.5);}
+.cf{position:fixed;width:9px;height:9px;border-radius:50%;pointer-events:none;z-index:999;animation:fall linear forwards;}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg);opacity:0;}}
+@media(max-width:700px){
+  .options-grid{grid-template-columns:1fr;}
+  #game{flex-direction:column;}
+  .prize-side{width:100%;border-left:none;border-top:1px solid rgba(255,215,0,.1);flex-direction:row;flex-wrap:wrap;justify-content:center;max-height:100px;padding:8px;gap:3px;}
+  .pz{padding:3px 7px;font-size:.65rem;}
+}
+</style>
+</head>
+<body>
+
+<div id="welcome" class="screen active">
+  <div class="trophy">🏆</div>
+  <div class="game-title">GAME MASTER</div>
+  <p class="subtitle">KBC FOR KIDS · WIN ₹1,00,00,000</p>
+  <div class="welcome-card">
+    <label class="field-label">YOUR NAME</label>
+    <input class="name-input" id="nameInput" type="text" placeholder="Enter your name..." maxlength="20">
+    <label class="field-label">SELECT YOUR AGE GROUP</label>
+    <div class="age-row">
+      <button class="age-btn" id="age1" onclick="selectAge(1)"><span class="emoji">🧒</span>Ages 5–10</button>
+      <button class="age-btn" id="age2" onclick="selectAge(2)"><span class="emoji">🧑</span>Ages 11–15</button>
+    </div>
+    <button class="start-btn" id="startBtn" onclick="startGame()" disabled>LET'S PLAY!</button>
+  </div>
+</div>
+
+<div id="game" class="screen">
+  <div class="game-main">
+    <div class="top-bar">
+      <span class="player-tag" id="playerTag">Player</span>
+      <span class="safe-tag" id="safeTag">Safe: ₹0</span>
+      <button class="quit-btn" onclick="quitGame()">Quit &amp; Take Money</button>
+    </div>
+    <div class="lifelines">
+      <button class="ll-btn" id="ll50" onclick="use5050()"><span class="ll-icon">✂️</span>50:50</button>
+      <button class="ll-btn" id="llAud" onclick="useAudience()"><span class="ll-icon">👥</span>Audience</button>
+      <button class="ll-btn" id="llFlip" onclick="useFlip()"><span class="ll-icon">🔄</span>Skip</button>
+    </div>
+    <div class="question-box">
+      <div class="q-cat" id="qCat">Category</div>
+      <div class="q-num" id="qNum">Question 1 of 15</div>
+      <div class="q-text" id="qText">Loading...</div>
+    </div>
+    <div class="options-grid" id="optsGrid"></div>
+    <div class="action-row">
+      <button class="lock-btn" id="lockBtn" onclick="lockIn()">🔒 LOCK IN</button>
+      <button class="next-btn" id="nextBtn" onclick="nextQuestion()">NEXT ▶</button>
+    </div>
+  </div>
+  <div class="prize-side" id="prizeSide"></div>
+</div>
+
+<div id="result" class="screen">
+  <div class="result-card">
+    <span class="r-emoji" id="rEmoji">🏆</span>
+    <div class="r-title" id="rTitle">Amazing!</div>
+    <div class="r-amount" id="rAmount">₹0</div>
+    <div class="r-msg" id="rMsg"></div>
+    <button class="play-again" onclick="resetGame()">🎮 PLAY AGAIN</button>
+  </div>
+</div>
+
+<!-- Audience Poll Modal -->
+<div class="backdrop" id="backdrop" onclick="closeAudience()"></div>
+<div class="modal" id="audienceModal">
+  <div class="modal-title">👥 Ask the Audience</div>
+  <div id="pollRows"></div>
+  <button class="modal-close" onclick="closeAudience()">Close</button>
+</div>
+
+<!-- Fact Modal (no backdrop click-to-close) -->
+<div class="fact-backdrop" id="factBackdrop"></div>
+<div class="fact-modal" id="factModal">
+  <div class="fact-cat-tag" id="factCat"></div>
+  <div class="fact-header">💡 Did You Know?</div>
+  <div class="fact-correct-box" id="factCorrect"></div>
+  <div class="fact-body" id="factBody"></div>
+  <button class="fact-close" onclick="closeFact()">Got it! ✓</button>
+</div>
+
+<script>
+const PRIZES=["₹1,000","₹2,000","₹3,000","₹5,000","₹10,000","₹20,000","₹40,000","₹80,000","₹1,60,000","₹3,20,000","₹6,40,000","₹12,50,000","₹25,00,000","₹50,00,000","₹1,00,00,000"];
+const SAFE=[4,9];
+const LABELS=["A","B","C","D"];
+
+// ── QUESTION BANKS ──
+// {cat, q, opts:[A,B,C,D], ans:0-3, fact}
+
+const Q_YOUNG=[
+// SET A
+[
+{cat:"💰 Financial Literacy",q:"Riya gets ₹50 pocket money and wants to save half. She then spends ₹10 on a pencil. How much has she saved?",opts:["₹10","₹25","₹15","₹20"],ans:1,fact:"Saving half your money before spending is one of the smartest habits you can build early. Riya saved ₹25 first, then spent ₹10 from her spending half — her savings are untouched at ₹25. This is called 'paying yourself first.' People who save before they spend always have money for big dreams later. Even a small, consistent saving habit can make you financially secure when you grow up."},
+{cat:"🥦 Health & Nutrition",q:"Which of these gives your body slow, lasting energy for playing and studying — not just a quick sugar rush?",opts:["Candy bar","Fizzy drink","Rice or chapati","Packet of chips"],ans:2,fact:"Rice and chapati are complex carbohydrates — your body breaks them down slowly, giving you steady energy for hours. Candy and fizzy drinks spike your blood sugar fast and then crash it, leaving you tired and cranky. Your brain alone uses 20% of your body's energy, so feeding it well directly affects how sharp you are in class. A good breakfast of complex carbs improves concentration and memory. What you eat every day is one of the biggest decisions affecting your health over your entire lifetime."},
+{cat:"🌍 Environment & Nature",q:"Why is it important to switch off lights, fans, and screens when you leave a room?",opts:["So the bulbs don't get tired","To save electricity and reduce pollution","To make the room darker","It doesn't really matter"],ans:1,fact:"Most electricity in India is made by burning coal, which releases carbon dioxide — a gas that traps heat in the atmosphere and causes climate change. Switching off one light for an hour saves a small amount of electricity, but millions of people doing it every day saves enormous amounts. Less electricity used means less coal burned, less pollution, and a cooler planet. Small, consistent habits are the foundation of protecting our environment. You can be a real-life superhero for Earth just by being thoughtful at home."},
+{cat:"🧠 Emotional Intelligence",q:"Your best friend lost a game and is crying. What is the MOST caring thing to do?",opts:["Laugh — it's just a game!","Tell them to stop crying","Sit beside them quietly and say 'I'm here for you'","Ignore them and keep playing"],ans:2,fact:"Sitting with someone who is sad without trying to fix or dismiss their feelings is called empathy — and it is one of the greatest human superpowers. When you say 'I'm here for you,' your friend's brain releases a comforting chemical called oxytocin. Research shows that children who learn empathy early grow up to have healthier friendships, better teamwork skills, and greater happiness. You don't always need words — your presence alone tells someone they matter. Learning to sit with someone's pain without running from it is a skill many adults still struggle with."},
+{cat:"🚦 Safety & Awareness",q:"You are home alone and smell gas coming from the kitchen. What should you do FIRST?",opts:["Light a candle to see better","Turn the stove on to check if gas is on","Open windows, leave the house immediately, and call an adult","Call your friend to come over"],ans:2,fact:"Gas leaks are dangerous because the gas can ignite from even a tiny spark — including a light switch or a phone call made indoors. The moment you smell gas, your only job is to get fresh air outside immediately. Don't touch switches, don't make calls inside, and don't go back in. Once outside, call an adult or emergency services from there (112 in India). Knowing this one rule could save your life and the lives of everyone in your home."},
+{cat:"🤝 Values & Character",q:"You find ₹500 on the school floor. Nobody saw you pick it up. What is the RIGHT thing to do?",opts:["Keep it — finders keepers!","Split it secretly with your best friend","Hand it in to your teacher or the lost and found","Hide it in your bag for later"],ans:2,fact:"Honesty is doing the right thing even when absolutely nobody is watching — that is the true test of character. The person who lost that ₹500 may really need it. Handing it in shows that you are trustworthy, and people who are trustworthy earn respect and are given more responsibility throughout their lives. Many employers say the most important thing they look for is integrity — doing what is right over what is easy. The choices you make when nobody is watching shape the kind of person you truly are."},
+{cat:"🔬 Science of Everyday Life",q:"A steel spoon left in a cup of hot soup becomes hot too, even though it wasn't near the fire. Why?",opts:["Steel is alive and absorbs heat by itself","Heat travels through solid metals — this is called conduction","The hot soup makes the steel rust and heats up","Only liquids can transfer heat"],ans:1,fact:"Conduction is how heat energy moves through solid materials by passing from one vibrating particle to the next. Metals like steel are excellent conductors because their particles are tightly packed and pass energy very efficiently. This is why metal handles on old pots burn your hand but wooden or plastic handles stay cool — wood and plastic are poor conductors. Engineers use this knowledge to design everything from cooking equipment to spacecraft heat shields. Understanding why materials behave differently with heat is one of the foundations of all engineering and design."},
+{cat:"🧮 Practical Math & Logic",q:"A shopkeeper has 3 crates with 24 mangoes each. He sells 40 mangoes. How many mangoes are left?",opts:["22","32","42","52"],ans:1,fact:"This is a two-step problem: first multiply (3 × 24 = 72 total), then subtract (72 − 40 = 32 left). Breaking a big problem into smaller steps is one of the most important thinking skills you can develop. Shopkeepers, engineers, doctors, and pilots all use this kind of step-by-step reasoning every single day. Practising mental maths strengthens the connections in your brain just like exercise strengthens muscles. People who are comfortable with numbers make better decisions about money, health, and time throughout their lives."},
+{cat:"🗺️ World & Cultures",q:"Which two countries share the longest land border in the world?",opts:["India and China","USA and Canada","Russia and China","Brazil and Argentina"],ans:1,fact:"The USA–Canada border stretches 8,891 km — the longest undefended international border on Earth, meaning no soldiers guard it. This remarkable friendship between two nations is the result of centuries of trade, shared values, and peaceful cooperation. India shares land borders with 6 countries: Pakistan, China, Nepal, Bhutan, Bangladesh, and Myanmar. Understanding world geography helps you see how countries are connected through history, trade, and migration. Every border in the world has a fascinating story of how it came to be."},
+{cat:"💻 Digital Literacy & Safety",q:"A stranger online sends you a message: 'Don't tell your parents about our chats — it'll be our secret.' What should you do?",opts:["Keep the secret — they seem nice","Reply only if they seem friendly","Tell a trusted adult immediately","Delete the message and forget about it"],ans:2,fact:"Any adult who asks a child to keep secrets from parents is sending a major danger signal — safe adults never do this. Online predators build trust slowly with children before asking for secrecy, photos, or meetings. Telling a trusted adult — parent, teacher, or relative — protects you and potentially other children too. You will NEVER get in trouble for reporting something that felt unsafe or wrong. Internet safety is just as important as road safety, and the same rule applies: if something feels wrong, stop and get help immediately."},
+{cat:"💰 Financial Literacy",q:"Arjun saves ₹400 every month from his pocket money. After 6 months, how much has he saved in total?",opts:["₹1,800","₹2,400","₹2,800","₹3,200"],ans:1,fact:"₹400 × 6 months = ₹2,400 — saved without doing any extra work, just by being consistent. If Arjun puts this in a bank savings account, the bank pays him extra money called interest, so his savings grow even faster. This is called the power of consistent saving. Starting a saving habit at your age is one of the most financially powerful things you can do — time is your greatest advantage. Money saved early has more time to grow, and even small amounts become large over many years."},
+{cat:"🥦 Health & Nutrition",q:"Why does your body temperature rise when you have a fever?",opts:["Your body is overheating by accident","Your immune system raises temperature on purpose to kill the germs making you sick","You ate too much food","The weather outside makes you hotter"],ans:1,fact:"A fever is actually your body's brilliant self-defence system in action — not a malfunction! Most bacteria and viruses cannot survive at temperatures above 38°C, so your immune system deliberately raises your body heat to destroy them. At the same time, your white blood cells work faster at higher temperatures to fight the infection. A mild fever usually means your body is winning the battle. However, very high fevers (above 39.5°C) need a doctor because they can damage cells — that's why adults always monitor temperature carefully."},
+{cat:"🌍 Environment & Nature",q:"The Arctic ice is melting faster than ever in history. What is the MAIN reason?",opts:["Natural seasons are just changing","Greenhouse gases from human activity trap heat and raise global temperatures","Too many ships are breaking the ice","Ocean currents have naturally shifted"],ans:1,fact:"Greenhouse gases like carbon dioxide (CO₂) act like a blanket around the Earth, trapping the sun's heat and slowly warming the entire planet. As Arctic ice melts, sea levels rise globally, threatening coastal cities like Mumbai and Chennai. It also destroys habitats for polar bears, seals, and countless other species who depend entirely on ice. The biggest sources of CO₂ are power plants, cars, and factories burning fossil fuels. Every choice we make — cycling instead of driving, eating less meat, using less electricity — genuinely helps slow this process."},
+{cat:"🔬 Science of Everyday Life",q:"At what time of day is your shadow the SHORTEST?",opts:["Early morning","Late evening","Around noon (12pm)","Just after sunset"],ans:2,fact:"At noon, the sun is at its highest point directly overhead, so sunlight hits you from directly above and your shadow falls straight below you — making it shortest. In the morning and evening, the sun is at a low angle to the horizon, which stretches your shadow into a long shape. Ancient civilisations used this principle to create sundials — nature's first clocks! Today, architects use shadow angles to design buildings that don't block sunlight from neighbouring structures. The relationship between angles and shadows is used daily in art, photography, construction, and navigation."},
+{cat:"🧮 Practical Math & Logic",q:"If you fold a piece of rope exactly in half 3 times and then cut at every crease, how many equal pieces do you get?",opts:["4 pieces","6 pieces","8 pieces","12 pieces"],ans:2,fact:"Each fold doubles the number of sections: 1 fold = 2 pieces, 2 folds = 4 pieces, 3 folds = 8 pieces. This doubling pattern is called exponential growth and it is one of the most powerful ideas in mathematics and real life. It explains why a tiny amount of money invested early becomes a huge amount later. It also explains how viruses can spread so fast — one infected person infects two, who each infect two more, and very quickly thousands are affected. Understanding exponential growth helps you make sense of finance, science, and news stories about pandemics and technology."}
+],
+// SET B
+[
+{cat:"🧠 Emotional Intelligence",q:"Which of these is the BEST way to handle feeling very angry at someone?",opts:["Shout at them immediately to get it out","Send angry messages straight away","Take deep breaths, wait a few minutes, then talk calmly","Pretend you are not angry at all"],ans:2,fact:"When you feel angry, your brain floods with a chemical called adrenaline which makes it hard to think clearly — this is sometimes called being 'hijacked' by your emotions. Taking deep slow breaths actually lowers your heart rate and sends a calming signal to your brain within just 60–90 seconds. Waiting before responding gives your thinking brain time to come back online. People who can manage their anger make better decisions, have stronger relationships, and are more respected as leaders. Emotional regulation — controlling how you act on your feelings — is one of the most important skills any human being can develop."},
+{cat:"🚦 Safety & Awareness",q:"What is the single most important rule for crossing a busy road safely?",opts:["Run as fast as possible so cars have less time to hit you","Cross only at designated crossings: stop, look left, look right, look left again, then walk","Only cross when a friend is with you","Close your eyes and listen for cars"],ans:1,fact:"In India, vehicles drive on the left side of the road, so traffic closest to you when crossing comes from your left first — that's why you look left–right–left. Pedestrian road accidents are one of the leading causes of death and injury in children worldwide, and most are entirely preventable. Always make eye contact with a driver before stepping out — a nod confirms they have seen you. Never assume a stopped car will stay stopped. Teaching one younger sibling or friend this road-crossing method is one of the most genuinely life-saving things you can do."},
+{cat:"🤝 Values & Character",q:"Two classmates both want to be team captain. Neither will agree to let the other lead. What is the FAIREST solution?",opts:["The taller child should lead","Flip a coin, or take turns captaining in different rounds","Whoever shouts loudest gets to be captain","The teacher should just pick randomly"],ans:1,fact:"Fairness means everyone has an equal and unbiased chance — not that everyone gets exactly the same outcome. Flipping a coin gives both children an identical 50% chance, which is perfectly fair. Taking turns respects both children's desire to lead and builds cooperation skills. Research in developmental psychology shows that children who learn fair conflict resolution have healthier friendships as teenagers and adults. The ability to resolve disagreements without fighting or giving up is one of the most valuable social skills taught in schools, businesses, and even international diplomacy."},
+{cat:"💻 Digital Literacy & Safety",q:"You see something online that upsets or frightens you. What is the RIGHT first step?",opts:["Share it with all your class group chat","Keep scrolling and try to forget it","Tell a trusted adult straight away","Create a new account to find out more"],ans:2,fact:"Disturbing content online — including violence, bullying, or inappropriate images — can genuinely affect your mental health and confidence even if you only see it briefly. Telling a trusted adult means they can help you process what you saw, report it, and make sure you are okay. Never share upsetting content — it can cause real harm to others who see it, and spreading harmful content has legal consequences in many countries. Most platforms have report buttons specifically for this — adults and platform teams investigate every report. Remember: your emotional safety online is just as important as your physical safety in the real world."},
+{cat:"💰 Financial Literacy",q:"What is the KEY difference between a 'need' and a 'want'?",opts:["They mean exactly the same thing","A need is essential to survive; a want is something extra and nice to have","Wants are actually more important than needs","Only adults have needs — children only have wants"],ans:1,fact:"Food, clean water, shelter, clothing, and safety are needs — without them, human beings cannot survive or function. Video games, branded shoes, and the latest phone are wants — enjoyable but not essential for survival. The most important financial habit you can build is covering needs before spending on wants. Millions of adults get into financial trouble because they buy wants before needs are met. Practising the skill of 'delayed gratification' — waiting and saving before buying something you want — is strongly linked to greater success and happiness throughout life."},
+{cat:"🌍 Environment & Nature",q:"Which everyday action BEST helps reduce plastic pollution in rivers and oceans?",opts:["Using a new single-use plastic bottle every day","Throwing plastic into the sea so fish can eat it","Carrying a reusable water bottle and cloth shopping bag","Buying more individually packaged food items"],ans:2,fact:"Over 8 million tonnes of plastic enter the ocean every single year. A plastic bottle takes approximately 450 years to break down — so every bottle used today will outlive your great-great-great-grandchildren! As plastic breaks down, it forms microplastics — tiny particles now found inside fish, drinking water, and even the human bloodstream. Using a reusable bottle for one year prevents roughly 156 single-use plastic bottles from being created. You personally making this one change, multiplied by millions of people making the same choice, is how individual habits create global change."},
+{cat:"🥦 Health & Nutrition",q:"Why is it better to drink water throughout the day rather than only when you feel very thirsty?",opts:["It is not important — your thirst is a perfect guide","By the time you feel very thirsty, your body is already mildly dehydrated","Water only matters after exercise","Juice or soft drinks hydrate you just as well"],ans:1,fact:"Thirst is actually a late warning system — it only kicks in after your body has already lost about 1–2% of its water content. Even this small level of dehydration reduces your concentration, makes you feel tired, and can cause headaches. Your brain is 73% water, so drinking enough keeps it functioning at its best — studies show well-hydrated children perform significantly better on tests. Children need 6–8 glasses of water daily depending on age and activity. Keeping a water bottle with you and sipping regularly throughout the day is one of the simplest habits for better energy, focus, and health."},
+{cat:"🔬 Science of Everyday Life",q:"Why do you see a lightning flash before you hear the thunder, even though both happen at exactly the same moment?",opts:["Your ears are naturally slower than your eyes","Lightning is always much louder than thunder","Light travels almost a million times faster than sound","Thunder comes from a different place than lightning"],ans:2,fact:"Light travels at 300,000 kilometres per second — it crosses the entire Earth in just 1/7th of a second. Sound travels at only 343 metres per second in air, making light roughly 874,000 times faster over a given distance. You can use this to calculate how far away a storm is: count the seconds between flash and thunder, then divide by 3 to get the distance in kilometres. This speed difference is also why you see a cricket bat strike the ball before you hear the crack from a distance. The vast difference between the speed of light and sound is one of the most fascinating and useful physics facts in everyday life."},
+{cat:"🧮 Practical Math & Logic",q:"A water tank holds 600 litres. A family uses 150 litres per day. How many days will the water last?",opts:["3 days","4 days","5 days","6 days"],ans:1,fact:"600 ÷ 150 = 4 days. This type of calculation — dividing total resources by daily usage — is called resource planning, and it's used by households, hospitals, cities, and even space missions. Over 2 billion people worldwide face water scarcity. Simple conservation habits — fixing leaky taps, taking shorter showers, reusing cooking water to water plants — can extend a family's water supply significantly. If every family in India saved just 10 litres per day, the collective saving would be enough to supply millions of extra people. Maths gives us the tools to understand and solve real environmental problems."},
+{cat:"🗺️ World & Cultures",q:"India is called the world's largest democracy. What does this MAINLY mean?",opts:["India has the largest army in the world","Every adult citizen has an equal right to vote and choose their government leaders","India's leaders are chosen by the richest families","Only educated citizens are allowed to vote"],ans:1,fact:"India has over 900 million eligible voters — more than any other democracy on Earth — and every single vote carries exactly the same weight, whether you're a billionaire or a daily wage worker. Democracy comes from Greek words meaning 'rule by the people.' India gained its democracy through the independence movement and adopted its Constitution on 26 January 1950 — celebrated every year as Republic Day. Your vote as a future adult is one of the most powerful tools you will ever have. Learning how democracy works helps you become an informed, responsible citizen who can shape the country's future."},
+{cat:"🧠 Emotional Intelligence",q:"A classmate always sits alone at lunch and looks sad. You don't know them well. What is the KINDEST and bravest thing to do?",opts:["Wait for them to speak to you first before doing anything","Tell other friends about how sad they look","Go over, say hello, and ask if they would like company","Ignore them — it's not your responsibility"],ans:2,fact:"Loneliness is one of the most painful human experiences — research shows it activates the same parts of the brain as physical pain. The act of including someone who is alone is called a 'prosocial behaviour,' and it benefits both the person reaching out and the person receiving kindness. Studies show that one genuine, caring conversation can transform someone's entire school experience and even their mental health. Children who practice inclusion grow up to be better leaders, colleagues, and parents. Having the courage to speak first — especially to someone unfamiliar — is a rare and beautiful form of bravery."},
+{cat:"🚦 Safety & Awareness",q:"Why is it dangerous to share your home address, school name, or daily routine on social media?",opts:["It's completely safe — only friends see it","Strangers could use those details to locate you or track your movements","Schools actually encourage this for safety","It might slow down your internet connection"],ans:1,fact:"Every specific detail you share online — school name, neighbourhood landmark, sports practice time — is a clue that a stranger could piece together to find you in the real world. Even 'private' posts can be screenshotted and shared beyond your control. Predators are patient — they gather information over weeks or months before ever making contact. A simple digital safety rule: never post anything you wouldn't be comfortable reading out to a stranger on the street. Your personal information is as valuable and private as the keys to your home — protect it accordingly."},
+{cat:"🤝 Values & Character",q:"You worked very hard on a project and got 7/10. Your friend barely tried and also got 7/10. How should you handle this?",opts:["Argue loudly with the teacher to get a higher mark","Cheat on the next project to feel more equal","Talk privately to the teacher if you feel it was unfair, then focus on your own growth and learning","Give up working hard since effort clearly doesn't matter"],ans:2,fact:"Feeling that something is unfair is a completely natural and valid human emotion — the question is how you respond. Raising a concern calmly and respectfully with a teacher is mature and appropriate. What you absolutely control is your own effort, learning, and growth — and studies consistently show that effort matters far more than talent over a lifetime. People who focus on their own improvement rather than comparing themselves to others are significantly happier and more successful. This mindset — called a 'growth mindset' by psychologist Carol Dweck — is perhaps the single biggest predictor of long-term achievement."},
+{cat:"🌍 Environment & Nature",q:"If all the bees on Earth disappeared, what would be the MOST serious consequence?",opts:["We would only lose the production of honey","Most flowering food crops would fail to reproduce, threatening the global food supply","Only tropical regions would be affected","Birds would become noisier"],ans:1,fact:"Bees pollinate approximately 70% of the world's food crops — without them, one in every three bites of food you eat would simply not exist. Fruits, vegetables, nuts, and many grains depend on bees carrying pollen between flowers to reproduce. Scientists call bees a 'keystone species' — their disappearance would trigger a cascade of extinctions affecting entire ecosystems. Bee populations are declining globally due to pesticides, habitat destruction, and climate change. You can help right now by planting flowers (even in a pot!), avoiding chemical pesticides, and telling others why bees matter."},
+{cat:"💻 Digital Literacy & Safety",q:"A news headline says: 'Scientists prove chocolate cures all diseases!' Before sharing it, what should you do?",opts:["Share it immediately so everyone benefits from this discovery","Believe it — headlines are always accurate and checked","Check whether trusted scientific organisations confirm it and look for the original research","Stop reading all news because you can't trust any of it"],ans:2,fact:"This is called media literacy — the ability to think critically about information before believing or sharing it. Research from MIT found that false news spreads six times faster on social media than true news, largely because fake headlines are designed to be exciting and trigger emotional reactions. Credible sources include peer-reviewed scientific journals, national health organisations (like WHO or ICMR), and established news agencies. Always ask four questions: Who wrote this? When? What's their evidence? Does anyone credible confirm it? Developing the habit of verifying before sharing is one of the most responsible and powerful things you can do in today's information world."}
+]
+];
+
+const Q_OLDER=[
+// SET A
+[
+{cat:"💰 Financial Literacy",q:"A bank offers 6% interest per year on your savings account. What does this mean for ₹10,000 saved?",opts:["You pay the bank ₹600 per year for keeping your money safe","The bank adds ₹600 to your account every year as a reward for saving","You can withdraw your money 6 times per year","6% of your money is taken as tax each year"],ans:1,fact:"Interest is money the bank pays YOU simply for keeping your money with them — your money is working for you while you sleep. At 6% per year, ₹10,000 becomes ₹10,600 after one year. Over many years, interest earns more interest — this is called compound interest, which Albert Einstein reportedly called 'the eighth wonder of the world.' Starting to save even small amounts in your teenage years, and letting compound interest work for decades, is the foundation of building wealth available to absolutely everyone. Time is the most valuable ingredient in any savings plan."},
+{cat:"🥦 Health & Nutrition",q:"Why do nutritionists recommend eating vegetables and fruits of many different colours?",opts:["For visual appeal on the plate and nothing more","Each colour represents different phytonutrients — vitamins, minerals, and antioxidants your body needs for different functions","Colourful foods always have better flavour","Colour has no nutritional significance whatsoever"],ans:1,fact:"The colour of a plant food comes from specific phytonutrients — natural chemicals that protect your body in different ways. Red tomatoes contain lycopene which protects your heart; orange carrots have beta-carotene essential for eye health; green spinach provides iron and folate for healthy blood; purple blueberries have anthocyanins that protect brain cells. No single food contains everything your body needs — diversity is the nutritional key. This 'eat the rainbow' principle is endorsed by health authorities in over 100 countries and is backed by thousands of peer-reviewed studies. Your daily food choices are the most consistent investment you make in your future health."},
+{cat:"🌍 Environment & Nature",q:"What is a person's 'carbon footprint'?",opts:["How far they walk on average per day","The total greenhouse gases produced by all their activities and consumption choices, measured in CO₂ equivalent","The number of trees they personally cut down in a year","Their shoe size multiplied by their environmental impact"],ans:1,fact:"Every activity generates greenhouse gases — flying for one hour produces approximately 250 kg of CO₂ per passenger; eating a beef burger produces about 3 kg of CO₂. Your carbon footprint is the sum of all such emissions from your lifestyle. The average Indian produces about 1.9 tonnes of CO₂ per year, compared to 14 tonnes for an average American. You can reduce yours by eating less meat, using public transport, buying fewer fast-fashion items, and choosing renewable energy. Free carbon footprint calculators are available online — knowing your number is always the first step to reducing it."},
+{cat:"🧠 Emotional Intelligence",q:"What is the precise difference between 'sympathy' and 'empathy'?",opts:["They are synonyms — both words mean exactly the same thing","Sympathy is feeling sorry FOR someone from a distance; empathy is genuinely feeling WITH someone by understanding their perspective","Empathy is always more powerful and appropriate than sympathy in every situation","Sympathy applies to physical pain while empathy applies only to emotional pain"],ans:1,fact:"Sympathy says: 'I feel sorry for you — that's terrible.' Empathy says: 'I understand how you feel; I'm right here with you in this.' Empathy requires temporarily stepping into another person's perspective and experiencing the world through their eyes. Research by vulnerability expert Brené Brown shows empathy builds deep genuine connection, while sympathy — though well-intentioned — can sometimes create distance by making the other person feel 'looked down on.' Empathy is a skill you can deliberately practise and strengthen through active listening, reading fiction, and consciously asking 'how would I feel if this happened to me?' It makes better doctors, teachers, leaders, parents, and friends."},
+{cat:"🚦 Safety & Awareness",q:"Someone near you suddenly collapses and is unresponsive. What is the FIRST action you should take?",opts:["Give them water to drink immediately","Check if they are breathing and call emergency services (112 in India) immediately","Slap their face firmly to try to wake them up","Go find a building with adults before doing anything else"],ans:1,fact:"The first minute after someone collapses is critical — brain damage from lack of oxygen begins within 4 minutes. The correct sequence is: check for danger to yourself, check if they are responsive (call their name, tap shoulder), check breathing, then call 112 immediately and stay on the line. Emergency dispatchers can guide you through CPR step-by-step even if you've never learned it. Every school in many countries now teaches CPR because bystanders with basic training save more lives than waiting for ambulances. Learning emergency response is one of the most genuinely life-saving skills a young person can acquire."},
+{cat:"🤝 Values & Character",q:"You witness classmates cyber-bullying a fellow student in a group chat. No one knows you saw it. What is the most responsible action?",opts:["Stay out of it completely — it is not your responsibility","Join in because social pressure makes it feel difficult to resist","Report it to a trusted adult and privately check in with the student being bullied","Screenshot and publicly expose the bullies on social media to shame them"],ans:2,fact:"Bystanders to bullying are the most powerful force for stopping it — research shows bullying stops within 10 seconds in over 57% of cases when a bystander intervenes or reports it. Doing nothing sends a silent signal to the bully that the behaviour is tolerated. Public shaming — even of bullies — often escalates conflict and can have legal consequences. Privately checking in with the victim says something powerful: 'You are not alone.' Being an 'upstander' rather than a bystander is a courageous character choice that defines the kind of person and community member you are choosing to be."},
+{cat:"🔬 Science of Everyday Life",q:"Why does a cut apple or avocado turn brown when left exposed to air?",opts:["The fruit is beginning to rot the moment it is cut","Oxygen reacts with enzymes in the cut fruit (enzymatic oxidation), producing brown-coloured compounds","Sunlight bleaches the natural colour of the flesh","The water inside evaporates and leaves a brown residue"],ans:1,fact:"Enzymatic browning occurs when oxygen in the air contacts an enzyme called polyphenol oxidase naturally present in the fruit. This is the same chemical process that causes cut metal to rust — oxidation. Chefs squeeze lemon juice on cut fruit to slow this reaction because citric acid inhibits the enzyme. The same process makes old blood turn brown. Oxidation is a chemical process central to cooking, medicine, food preservation, and industrial manufacturing. Understanding it has helped scientists develop better food packaging, wound-healing materials, and anti-aging skin products."},
+{cat:"🧮 Practical Math & Logic",q:"A jacket costs ₹800 and is on 25% discount. What is the final sale price?",opts:["₹575","₹600","₹625","₹650"],ans:1,fact:"25% of ₹800 = ₹800 ÷ 4 = ₹200 discount. ₹800 − ₹200 = ₹600 final price. Calculating discounts quickly is one of the most practically useful maths skills you will use throughout life as a consumer. Retailers use discount psychology strategically — a 50% discount on an overpriced item may still be worse value than a full-priced item elsewhere. Smart consumers always calculate the actual price per unit (price per gram, per litre, per use) rather than simply reacting to the percentage headline. This one skill alone can save tens of thousands of rupees in smarter purchasing decisions over your lifetime."},
+{cat:"🗺️ World & Cultures",q:"What was the historical significance of the Silk Road?",opts:["It was a road paved with silk fabric in ancient China","It connected Europe, the Middle East, and Asia, enabling trade in goods and the exchange of ideas, religions, diseases, and cultures for over 1,500 years","It was simply the first paved road ever constructed in human history","It only transported silk products between China and one neighbouring country"],ans:1,fact:"The Silk Road was not a single road but a vast network of overland and maritime trade routes stretching over 6,400 km, active from roughly 130 BCE to the 1450s CE. It carried not just silk but spices, paper, gunpowder, glass, mathematics, astronomy, and philosophical ideas between civilisations that would otherwise never have met. Buddhism spread from India to China and Japan along this route. The Black Death that killed one-third of Europe's population in the 14th century also travelled these same routes. China's current 'Belt and Road Initiative' is explicitly modelled on its ancient predecessor — understanding history reveals the roots of today's global economy."},
+{cat:"💻 Digital Literacy & Safety",q:"What is 'phishing' in the context of internet and cybersecurity?",opts:["A multiplayer online fishing game for teenagers","A fraudulent attempt to steal passwords or financial information by impersonating a trustworthy source — a bank, government site, or popular company","A fast method of downloading large files across the internet","Software that automatically blocks spam and junk emails"],ans:1,fact:"Over 3 billion phishing emails are sent every day — it is the most common form of cybercrime globally. Attackers create convincing fake websites and emails that look identical to real banks, government portals, or services like Google and Amazon, tricking users into entering their passwords or card details. Warning signs: urgent alarming language ('Your account will be closed in 24 hours!'), email addresses with misspellings, suspicious links, and requests for passwords. Always type web addresses directly into your browser — never click links in unexpected emails. Your digital identity — connected to your bank, education records, and personal data — deserves the same protection you would give the keys to your home."},
+{cat:"💰 Financial Literacy",q:"What is 'inflation' and how does it directly affect the real value of your savings?",opts:["Inflation automatically makes savings grow — it is always positive for savers","Inflation is the rise in prices over time — if your savings earn less interest than the inflation rate, your money loses purchasing power","Inflation only affects people who do not have bank accounts","Inflation and bank interest rates are exactly the same concept"],ans:1,fact:"If inflation runs at 6% annually but your savings account earns only 4% interest, your money is effectively losing 2% of its real purchasing power every year — you can buy less with the same amount. ₹100 that buys a full meal today might only buy half a meal in 15 years during sustained inflation. This is why keeping large amounts of cash under a mattress is a losing strategy. Investments in growth assets — shares, property, gold, index funds — are designed specifically to grow faster than inflation. Understanding inflation is essential to ensuring your money genuinely grows in value rather than quietly shrinking."},
+{cat:"🥦 Health & Nutrition",q:"What role does the gut microbiome play in overall human health?",opts:["It assists only with the digestion of dietary fibre and nothing else","Trillions of bacteria in your gut influence digestion, immune system function, mental health, and even mood through the gut-brain axis","The gut microbiome is the primary cause of most common human diseases","Gut microbiome health is only clinically relevant in elderly patients"],ans:1,fact:"Your gut contains approximately 100 trillion bacterial cells — that's more bacterial cells than human cells in your entire body. This ecosystem produces essential vitamins (B12, K2), trains your immune system to distinguish friend from foe, and communicates directly with your brain through the vagus nerve — the 'gut-brain axis.' Poor microbiome health (caused by ultra-processed food, overuse of antibiotics, and chronic stress) is strongly linked to anxiety, depression, inflammatory conditions, and weakened immunity. Eating fermented foods (curd, kimchi), diverse fibrous vegetables, and minimising processed food builds a thriving gut microbiome. Scientists now regard gut health as foundational to overall health — it is the most active frontier in modern medical research."},
+{cat:"🌍 Environment & Nature",q:"What is the precise scientific distinction between 'weather' and 'climate'?",opts:["They are synonyms — just different words for the same atmospheric conditions","Weather describes short-term atmospheric conditions at a specific location; climate describes long-term average patterns of weather in a region over 30 or more years","Climate refers exclusively to temperature while weather encompasses all atmospheric variables","Weather is a global phenomenon while climate describes only local conditions"],ans:1,fact:"'Climate is what you expect; weather is what you get' is the most concise way to remember this. A single cold day proves nothing about whether global warming is real — just as one rainy day doesn't mean your city has a wet climate. Climate scientists analyse data over decades and centuries to detect trends invisible in daily observations. This confusion is deliberately exploited in political debates — someone pointing to a winter snowstorm as 'proof' climate change isn't real is confusing weather for climate. Understanding this distinction is critical for evaluating climate arguments accurately and protecting yourself from scientifically illiterate misinformation."},
+{cat:"🔬 Science of Everyday Life",q:"Why do people experience jet lag after flying across multiple time zones?",opts:["Aeroplane food disrupts the digestive system and sleep patterns","The body's internal circadian clock is still set to the original timezone while the surrounding environment has shifted to a new day-night cycle","High altitude during flight permanently alters brain chemistry in most passengers","Jet lag only occurs on flights longer than 12 hours — shorter flights cause no effects"],ans:1,fact:"Every cell in your body contains a biological clock regulated by the hormone melatonin and controlled by light exposure. Flying across 5 time zones in 10 hours means your body is still 'expecting' conditions of the old timezone while the new environment demands a completely different schedule. Recovery takes roughly one day per time zone crossed. Bright morning sunlight at your destination is the most powerful 'clock resetter' — it tells your brain to update its timing. Circadian rhythm research has transformed treatment of sleep disorders, led to improved scheduling of cancer chemotherapy (cells are more vulnerable to drugs at specific times), and helps athletes peak performance at the right moment."},
+{cat:"🧮 Practical Math & Logic",q:"A car travels at 60 km/h for the first half of a journey (by distance) and 40 km/h for the second half. What is the average speed for the whole journey?",opts:["50 km/h — the simple arithmetic average","48 km/h — the harmonic mean of the two speeds","52 km/h","45 km/h"],ans:1,fact:"Most people instinctively answer 50 km/h — but this is wrong! Because you spend more TIME travelling the slower half (the same distance takes longer at 40 than at 60), the slower speed disproportionately drags down the average. The correct formula is the Harmonic Mean: 2ab ÷ (a+b) = 2×60×40 ÷ 100 = 48 km/h. This counter-intuitive result appears in finance (average investment returns across periods), physics (average wave velocities), and computer network engineering. The ability to identify when a simple arithmetic average is misleading — and apply the correct type of average — is a mark of sophisticated quantitative reasoning highly valued in every analytical profession."}
+],
+// SET B
+[
+{cat:"🧠 Emotional Intelligence",q:"What is the most productive first response when you feel a strong sense of anger rising?",opts:["Express the anger immediately and loudly so it doesn't build up inside","Send messages to the person instantly so they understand your feelings","Pause, breathe deeply for 60–90 seconds to allow adrenaline to subside, then respond thoughtfully","Suppress the anger completely and pretend it never happened"],ans:2,fact:"When you feel intense anger, your amygdala — the brain's alarm system — floods your body with adrenaline and cortisol, temporarily impairing the prefrontal cortex responsible for rational decision-making. This 'amygdala hijack' makes impulsive responses feel logical when they are not. Deep, slow breathing activates the parasympathetic nervous system, measurably lowering your heart rate and cortisol levels within 60–90 seconds. This is called 'emotional regulation' — the ability to experience feelings without being controlled by them. Research consistently shows that people with high emotional regulation achieve more academically, earn more, have healthier relationships, and report greater life satisfaction."},
+{cat:"🚦 Safety & Awareness",q:"What is India's unified emergency services number, and what does it cover?",opts:["100 — police only","108 — ambulance only","112 — covers police, ambulance, and fire services through one single number","911 — the universal global emergency number"],ans:2,fact:"India launched the unified 112 emergency number in 2019 to replace the fragmented old system (100 for police, 108 for ambulance, 101 for fire) which caused dangerous confusion during emergencies. When you call 112, state your location first — street, landmark, district — then the nature of emergency, then your name. The dispatcher remains on the line to guide you until help arrives. Memorising 112 and teaching it to younger siblings could directly save a life. Emergency systems exist because trained professionals can provide life-saving guidance even over the phone — but only if you know to call and what to say."},
+{cat:"🤝 Values & Character",q:"A friend asks you to share your homework with them to copy — not as a one-off, but as a daily habit. What is the most genuinely helpful response?",opts:["Always share it — supporting friends in every way is what friendship means","Refuse firmly and explain that copying deprives them of actually learning — and puts both of you at risk","Share it secretly and hope no one discovers it","Report them to the teacher immediately without speaking to them first"],ans:1,fact:"Academic integrity means your grades represent what YOU have actually learned — not what someone else did. Your friend, by copying daily, misses the actual learning, which will hurt them in high-stakes exams and real-world applications. If caught, both students typically face equal consequences — so you're putting yourself at risk out of misplaced kindness. Offering to explain the work, study together, or help them understand the concepts is genuine friendship. True integrity is doing the right thing even when it costs you social comfort — and it builds a reputation that will serve you your entire professional life."},
+{cat:"🌍 Environment & Nature",q:"Approximately how long does a plastic bottle take to decompose in a landfill environment?",opts:["5 years","50 years","450 years","10,000 years"],ans:2,fact:"A single plastic bottle you drink from today will physically exist on Earth for approximately 450 years — long after everyone alive today is gone. Plastic does not truly biodegrade; it breaks into progressively smaller fragments called microplastics, now found in Arctic ice, deep ocean trenches, fish tissue, drinking water sources, and — in alarming recent research — in human blood and placentas. Over one million plastic bottles are purchased globally every minute. At current rates, the ocean will contain more plastic by weight than fish by 2050. Choosing reusable containers is among the highest-impact individual environmental decisions you can make."},
+{cat:"💰 Financial Literacy",q:"What is the fundamental difference between using a debit card and a credit card?",opts:["They function identically — both are just convenient alternatives to cash","A debit card spends money already in your account; a credit card lets you spend borrowed money you must repay later, often with very high interest","A credit card is exclusively for business use — not for individuals","A debit card charges higher transaction fees than a credit card in all situations"],ans:1,fact:"A debit card is a digital window into your existing bank balance — you can only spend what you have. A credit card is a short-term loan: you spend the bank's money with a promise to repay, but if you pay only the minimum amount each month, interest charges of 30–45% per year can quickly spiral into serious debt. Millions of adults fall into debt traps by misusing credit cards. Used responsibly — spending only what you can repay in full each month — a credit card builds credit history and provides purchase protection. The golden rule: never charge to a credit card what you could not pay for with your debit card right now."},
+{cat:"🥦 Health & Nutrition",q:"Why is consistent 8–9 hours of sleep per night especially critical during the teenage years?",opts:["It is not especially critical — sleep is simply passive rest and the body doesn't care how much it gets","During sleep, the brain consolidates memories, the body repairs tissue, growth hormone is released, and the immune system is significantly strengthened","Less sleep means more productive study hours, which makes teenagers academically smarter","Sleep requirements actually decrease progressively as children mature into teenagers"],ans:1,fact:"Sleep is one of the most biologically active states your body enters — far from passive rest. During deep sleep, your hippocampus transfers everything learned that day into long-term memory — this is literally why cramming the night before an exam by sacrificing sleep is counterproductive. Growth hormone is released almost exclusively during deep sleep phases — teenagers physically grow taller while sleeping. Chronic sleep deprivation in adolescents is clinically linked to anxiety, depression, obesity, weakened immune response, and impaired decision-making. The World Health Organisation recommends 8–10 hours for teenagers. Prioritising sleep is not laziness — it is scientifically one of the highest-leverage health choices you can make."},
+{cat:"🔬 Science of Everyday Life",q:"Why does a ball thrown upward slow down, momentarily stop, then accelerate back downward?",opts:["The ball physically exhausts its stored energy and runs out","Earth's gravitational field continuously exerts a downward force on the ball, decelerating it on the way up and accelerating it on the way down","Air resistance pulls the ball downward with increasing force","The sun's magnetic field repels objects thrown upward from Earth's surface"],ans:1,fact:"Gravity is a continuous attractive force between any two objects with mass. Earth's gravity accelerates all objects toward its centre at 9.8 m/s² — meaning every second a freely falling object gains 9.8 m/s of downward speed. Isaac Newton formalised this in his Law of Universal Gravitation in 1687, which simultaneously explained falling apples, orbiting moons, and the paths of planets. Einstein later revealed gravity is actually the curvature of space-time created by mass — a profound reimagining. The same equation governing your thrown ball governs satellite orbits, black hole formation, and the gravitational waves detected by LIGO — all described by identical mathematical laws."},
+{cat:"🧮 Practical Math & Logic",q:"You invest ₹1,000 in a scheme that doubles in value every 7 years. How much will you have after 21 years?",opts:["₹3,000","₹6,000","₹7,000","₹8,000"],ans:3,fact:"Three doublings in 21 years: ₹1,000 → ₹2,000 → ₹4,000 → ₹8,000. This is the Rule of 72 in action: divide 72 by the annual interest rate to estimate the number of years for money to double. At approximately 10% annual returns (achievable through long-term equity investments), money doubles every 7.2 years. The lesson is transformational: ₹1,000 invested at age 15 becomes ₹8,000 by age 36 without any additional contributions — purely through compound growth. Starting to invest even small amounts in your teenage years gives you 3–4 more doubling cycles than someone who starts at 30, potentially resulting in 8–16 times more wealth at retirement."},
+{cat:"🗺️ World & Cultures",q:"The United Nations has approximately how many member states, and what is its primary purpose?",opts:["54 member states — primarily to regulate international trade","120 member states — primarily to manage global currency systems","193 member states — primarily to maintain international peace, protect human rights, and promote sustainable development","220 member states — primarily to coordinate global military alliances"],ans:2,fact:"The United Nations was founded in 1945 with 51 original members after World War II devastated the world — today it has 193, representing virtually every nation on Earth. Its foundational documents include the UN Charter and the Universal Declaration of Human Rights (1948), which enshrines rights belonging to every human being regardless of nationality, gender, religion, or race. India was a founding member and has contributed more peacekeeping troops to UN missions than almost any other country. The UN's Sustainable Development Goals (SDGs) — 17 goals to be achieved by 2030 — represent humanity's most ambitious cooperative plan. Understanding global institutions helps you see how international agreements shape the world you will live and work in."},
+{cat:"💻 Digital Literacy & Safety",q:"What is two-factor authentication (2FA) and why is it critically important for account security?",opts:["Antivirus software that runs two scans simultaneously for double protection","A security process requiring two separate verification steps to access an account, making it dramatically harder for attackers to gain access even if they have your password","Having two completely different passwords for the same account on different devices","A setting that requires approval from two separate people before any online purchase is completed"],ans:1,fact:"Over 80% of hacking-related security breaches involve stolen or weak passwords alone — 2FA directly addresses this vulnerability. Even if an attacker obtains your password through phishing or a data breach, 2FA requires them to also possess your physical phone (for the one-time code) — an almost impossible additional barrier. Enabling 2FA on your email alone protects your entire digital identity, since email is used to reset passwords for every other account. Most major services — Google, Instagram, banking apps — offer free 2FA in security settings, taking under 2 minutes to enable. Your digital identity is connected to your finances, education records, and personal communications — it deserves the same protection as a physically locked safe."},
+{cat:"🧠 Emotional Intelligence",q:"What does the psychological concept of 'cognitive dissonance' describe?",opts:["A clinical inability to make decisions under time pressure","The mental discomfort experienced when holding two contradictory beliefs simultaneously, or when actions conflict with stated values","An exceptional ability to memorise and recall factual information rapidly","A medical neurological condition that affects sustained concentration"],ans:1,fact:"Cognitive dissonance was identified by psychologist Leon Festinger in 1957. When you claim 'I value honesty' but lie to avoid a difficult conversation, you experience the uncomfortable internal tension of cognitive dissonance. The brain instinctively tries to resolve this by either changing the behaviour, rationalising the inconsistency, or downgrading the importance of the value. Recognising when you are experiencing cognitive dissonance — the moment your actions diverge from your stated values — is the most honest form of self-awareness. The greatest personal growth happens precisely in those moments: choosing to change the behaviour rather than change the belief. This is the engine of moral and intellectual development."},
+{cat:"🚦 Safety & Awareness",q:"What is 'confirmation bias' and why is it particularly dangerous when consuming news and social media?",opts:["A tendency to only read long, detailed news articles and skip brief ones","The brain's tendency to actively seek out and disproportionately trust information that confirms existing beliefs, while dismissing contradictory evidence","Deliberately choosing to trust only official government news sources for all information","A specific type of internet fraud that specifically targets regular news readers"],ans:1,fact:"Confirmation bias is one of the most powerful and universal cognitive biases — our brains evolved to seek confirmation because it was efficient for survival, but it distorts rational thinking. Social media algorithms learn your preferences and deliberately show you content you already agree with, creating information 'echo chambers' where your existing views are constantly reinforced. This is precisely how misinformation spreads virally — people share headlines matching their worldview without reading the actual article. To actively counteract confirmation bias: deliberately read one well-argued perspective you disagree with weekly, and honestly ask yourself 'what evidence would genuinely change my mind?' This is the hallmark of a critical thinker."},
+{cat:"🤝 Values & Character",q:"What is the core ethical dilemma explored by 'the trolley problem' thought experiment?",opts:["A practical logistics problem about public transport scheduling and efficiency","A philosophical thought experiment testing whether it is ethically justifiable to sacrifice one life to save multiple lives, revealing fundamental tensions between different moral frameworks","A historical case study about a real railway disaster and its legal aftermath","A mathematical probability problem about the relative risks of different transport modes"],ans:1,fact:"The trolley problem, created by philosopher Philippa Foot in 1967, poses this: a runaway trolley will kill 5 people; you can divert it to kill only 1. Should you? Utilitarian ethics says yes (greatest good for the greatest number). Kantian ethics says no (using a person purely as a means to an end violates human dignity). There is no universally agreed answer — that is precisely the point. Real-world versions of this dilemma face doctors rationing limited resources, self-driving car engineers programming accident responses, and military commanders making targeting decisions. Engaging seriously with ethical frameworks isn't academic — it prepares you to make principled decisions in the genuinely difficult situations that real life will present."},
+{cat:"💰 Financial Literacy",q:"In personal finance, what is the fundamental distinction between an 'asset' and a 'liability'?",opts:["They are interchangeable terms — both describe the total of what you own financially","An asset puts money into your pocket over time; a liability takes money out of your pocket over time — regardless of what it is or how much it cost","Assets are exclusively relevant to business accounting — they have no meaning in personal finance","Liabilities are always illegal or fraudulent financial instruments that should be avoided"],ans:1,fact:"This distinction, powerfully explained by Robert Kiyosaki in 'Rich Dad Poor Dad,' is the cornerstone of financial intelligence. A car used for commuting is typically a liability — it takes money from your pocket via fuel, insurance, and depreciation. The same car used professionally to generate income is an asset. Your education is your greatest potential asset — investing in skills that the market values compounds over an entire career. Most people remain financially stressed not from low income but from accumulating liabilities (gadgets, subscriptions, depreciating vehicles on EMI) while calling them assets. Every significant purchase decision becomes clearer when you ask one simple question: 'Will this put money in my pocket over time, or take it out?'"}
+]
+];
+
+// ── GAME STATE ──
+let playerName="",ageGroup=0,questions=[],qIndex=0;
+let selectedOpt=-1,state="idle";
+let ll50Used=false,llAudUsed=false,llFlipUsed=false;
+let safeAmount="₹0",afterFact=null;
+
+function selectAge(n){
+  ageGroup=n;
+  document.getElementById("age1").classList.toggle("sel",n===1);
+  document.getElementById("age2").classList.toggle("sel",n===2);
+  checkStart();
+}
+document.getElementById("nameInput").addEventListener("input",checkStart);
+function checkStart(){
+  const n=document.getElementById("nameInput").value.trim();
+  document.getElementById("startBtn").disabled=!(n&&ageGroup);
+}
+
+function startGame(){
+  playerName=document.getElementById("nameInput").value.trim();
+  const bank=ageGroup===1?Q_YOUNG:Q_OLDER;
+  questions=bank[Math.floor(Math.random()*bank.length)];
+  qIndex=0;ll50Used=false;llAudUsed=false;llFlipUsed=false;safeAmount="₹0";afterFact=null;
+  showScreen("game");buildPrizeSide();resetLifelines();loadQuestion();
+}
+
+function showScreen(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+
+function buildPrizeSide(){
+  const side=document.getElementById("prizeSide");side.innerHTML="";
+  for(let i=14;i>=0;i--){
+    const d=document.createElement("div");
+    d.className="pz"+(SAFE.includes(i)?" safe":"");d.id="pz"+i;
+    d.innerHTML=`<span class="pz-n">${i+1}</span><span class="pz-amt">${PRIZES[i]}</span>${SAFE.includes(i)?"⭐":""}`;
+    side.appendChild(d);
+  }
+}
+
+function updatePrizeSide(){
+  for(let i=0;i<15;i++){
+    const el=document.getElementById("pz"+i);
+    el.className="pz"+(SAFE.includes(i)?" safe":"");
+    if(i<qIndex)el.classList.add("won");
+    if(i===qIndex)el.classList.add("active");
+  }
+}
+
+function resetLifelines(){
+  document.getElementById("ll50").disabled=false;
+  document.getElementById("llAud").disabled=false;
+  document.getElementById("llFlip").disabled=false;
+}
+
+function loadQuestion(){
+  if(qIndex>=15){showResult(true);return;}
+  const q=questions[qIndex];
+  state="idle";selectedOpt=-1;
+  SAFE.forEach(s=>{if(qIndex>s)safeAmount=PRIZES[s];});
+  document.getElementById("qCat").textContent=q.cat;
+  document.getElementById("qNum").textContent=`Question ${qIndex+1} of 15`;
+  document.getElementById("qText").textContent=q.q;
+  document.getElementById("playerTag").textContent="👤 "+playerName;
+  document.getElementById("safeTag").textContent="Safe: "+safeAmount;
+  document.getElementById("lockBtn").style.display="none";
+  document.getElementById("nextBtn").style.display="none";
+  const grid=document.getElementById("optsGrid");grid.innerHTML="";
+  q.opts.forEach((opt,i)=>{
+    const btn=document.createElement("button");
+    btn.className="opt-btn";btn.id="opt"+i;
+    btn.innerHTML=`<span class="opt-lbl">${LABELS[i]}</span><span>${opt}</span>`;
+    btn.onclick=()=>selectOption(i);
+    grid.appendChild(btn);
+  });
+  updatePrizeSide();
+}
+
+function selectOption(i){
+  if(state!=="idle"&&state!=="selected")return;
+  const btn=document.getElementById("opt"+i);
+  if(btn.classList.contains("elim"))return;
+  selectedOpt=i;state="selected";
+  document.querySelectorAll(".opt-btn").forEach((b,j)=>{b.classList.remove("selected");if(j===i)b.classList.add("selected");});
+  document.getElementById("lockBtn").style.display="inline-block";
+}
+
+function lockIn(){
+  if(state!=="selected")return;
+  state="locked";
+  document.getElementById("lockBtn").style.display="none";
+  document.getElementById("opt"+selectedOpt).classList.remove("selected");
+  document.getElementById("opt"+selectedOpt).classList.add("locked-state");
+  document.querySelectorAll(".opt-btn").forEach(b=>b.style.pointerEvents="none");
+  setTimeout(()=>revealAnswer(),2000);
+}
+
+function revealAnswer(){
+  state="revealed";
+  const q=questions[qIndex];
+  const correct=q.ans,chosen=selectedOpt;
+  document.getElementById("opt"+correct).classList.add("correct");
+  document.getElementById("opt"+correct).classList.remove("locked-state");
+  if(chosen!==correct){
+    document.getElementById("opt"+chosen).classList.add("wrong");
+    document.getElementById("opt"+chosen).classList.remove("locked-state");
+  }
+  if(chosen===correct)showConfetti(chosen===correct&&qIndex===14?100:6);
+  setTimeout(()=>showFact(q,chosen===correct),1500);
+}
+
+function showFact(q,wasCorrect){
+  document.getElementById("factCat").textContent=q.cat;
+  document.getElementById("factCorrect").textContent="✓ Correct Answer: "+q.opts[q.ans];
+  document.getElementById("factBody").textContent=q.fact;
+  afterFact=wasCorrect?(qIndex>=14?"win":"next"):"gameover";
+  document.getElementById("factBackdrop").classList.add("show");
+  document.getElementById("factModal").classList.add("show");
+  document.getElementById("factModal").scrollTop=0;
+}
+
+function closeFact(){
+  document.getElementById("factBackdrop").classList.remove("show");
+  document.getElementById("factModal").classList.remove("show");
+  if(afterFact==="next")document.getElementById("nextBtn").style.display="inline-block";
+  else if(afterFact==="win")showResult(true);
+  else showResult(false);
+}
+
+function nextQuestion(){
+  qIndex++;
+  if(SAFE.includes(qIndex-1))safeAmount=PRIZES[qIndex-1];
+  if(qIndex>=15){showResult(true);return;}
+  loadQuestion();
+}
+
+function use5050(){
+  if(ll50Used||state==="locked"||state==="revealed")return;
+  ll50Used=true;document.getElementById("ll50").disabled=true;
+  const correct=questions[qIndex].ans;
+  const wrong=[0,1,2,3].filter(i=>i!==correct).sort(()=>Math.random()-.5).slice(0,2);
+  wrong.forEach(i=>{
+    document.getElementById("opt"+i).classList.add("elim");
+    if(selectedOpt===i){selectedOpt=-1;state="idle";document.getElementById("lockBtn").style.display="none";}
+  });
+}
+
+function useAudience(){
+  if(llAudUsed||state==="locked"||state==="revealed")return;
+  llAudUsed=true;document.getElementById("llAud").disabled=true;
+  const correct=questions[qIndex].ans;
+  const cp=40+Math.floor(Math.random()*25);
+  const rem=100-cp;
+  const wrong=[0,1,2,3].filter(i=>i!==correct);
+  const sp=splitN(rem,3);
+  const pcts=[0,0,0,0];pcts[correct]=cp;
+  wrong.forEach((wi,j)=>pcts[wi]=sp[j]);
+  const rows=document.getElementById("pollRows");rows.innerHTML="";
+  LABELS.forEach((_,i)=>{
+    rows.innerHTML+=`<div class="poll-row"><div class="poll-lbl"><span>${LABELS[i]}: ${questions[qIndex].opts[i]}</span><span>${pcts[i]}%</span></div><div class="poll-track"><div class="poll-fill" id="pf${i}"></div></div></div>`;
+  });
+  document.getElementById("backdrop").classList.add("show");
+  document.getElementById("audienceModal").classList.add("show");
+  setTimeout(()=>LABELS.forEach((_,i)=>{document.getElementById("pf"+i).style.width=pcts[i]+"%";}),100);
+}
+
+function splitN(total,n){
+  let p=[];for(let i=0;i<n-1;i++){const x=Math.floor(Math.random()*(total-(n-i-1)));p.push(x);total-=x;}p.push(total);return p.sort(()=>Math.random()-.5);
+}
+
+function closeAudience(){
+  document.getElementById("backdrop").classList.remove("show");
+  document.getElementById("audienceModal").classList.remove("show");
+}
+
+function useFlip(){
+  if(llFlipUsed||state==="locked"||state==="revealed")return;
+  llFlipUsed=true;document.getElementById("llFlip").disabled=true;
+  qIndex++;if(qIndex>=15){showResult(true);return;}
+  loadQuestion();showToast("Question skipped — no money lost!");
+}
+
+function quitGame(){
+  if(!confirm(`Quit now and take home ${safeAmount}?`))return;
+  showResultWith(safeAmount,false,true);
+}
+
+function showResult(won){
+  if(won&&qIndex>=15)showResultWith(PRIZES[14],true,false);
+  else if(won)showResultWith(PRIZES[qIndex-1],true,false);
+  else showResultWith(safeAmount,false,false);
+}
+
+function showResultWith(amount,won,quit){
+  const emoji=won?(amount===PRIZES[14]?"🏆":"🎉"):(quit?"👋":"😢");
+  const cls=(won||quit)?"win":"lose";
+  const title=won?(amount===PRIZES[14]?"CROREPATI!":"Congratulations!"):(quit?"See You Next Time!":"Oh No!");
+  const msg=won?`Incredible, ${playerName}! You answered all the way to ${amount}!`:(quit?`You walked away with ${amount}. Smart thinking, ${playerName}!`:`Don't worry, ${playerName}! You go home with ${safeAmount}. Every answer you got right taught you something valuable — try again!`);
+  document.getElementById("rEmoji").textContent=emoji;
+  document.getElementById("rTitle").textContent=title;
+  document.getElementById("rTitle").className="r-title "+cls;
+  document.getElementById("rAmount").textContent=quit?amount:(won?amount:safeAmount);
+  document.getElementById("rMsg").textContent=msg;
+  showScreen("result");
+  if(won)showConfetti(amount===PRIZES[14]?150:40);
+}
+
+function resetGame(){
+  showScreen("welcome");
+  document.getElementById("nameInput").value="";
+  document.getElementById("age1").classList.remove("sel");
+  document.getElementById("age2").classList.remove("sel");
+  ageGroup=0;document.getElementById("startBtn").disabled=true;
+}
+
+function showConfetti(count){
+  const cols=["#ffd700","#ff8c00","#00ff88","#ff69b4","#00bfff","#ff4444","#c0c0ff"];
+  for(let i=0;i<count;i++)setTimeout(()=>{
+    const cf=document.createElement("div");cf.className="cf";
+    cf.style.left=Math.random()*100+"vw";cf.style.background=cols[Math.floor(Math.random()*cols.length)];
+    cf.style.animationDuration=(1.5+Math.random()*2)+"s";cf.style.borderRadius=Math.random()>.5?"50%":"2px";
+    document.body.appendChild(cf);setTimeout(()=>cf.remove(),4000);
+  },i*25);
+}
+
+function showToast(msg){
+  const t=document.createElement("div");
+  t.style.cssText="position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.9);border:2px solid #ffd700;border-radius:50px;padding:11px 24px;color:#ffd700;font-weight:700;z-index:400;font-size:.9rem;";
+  t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),3000);
+}
+</script>
+</body>
+</html>
